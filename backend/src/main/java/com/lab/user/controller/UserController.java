@@ -27,6 +27,14 @@ public class UserController {
         return ApiResponse.ok("사용자 목록 조회 성공", userService.getUsers(keyword, status, role, departmentId, adminDepartment));
     }
 
+    @GetMapping("/options")
+    public ApiResponse<List<UserResponse>> options(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long departmentId
+    ) {
+        return ApiResponse.ok("사용자 선택 목록 조회 성공", userService.getUserOptions(keyword, departmentId));
+    }
+
     @GetMapping("/pending")
     public ApiResponse<List<UserResponse>> pending() {
         return ApiResponse.ok("승인 대기 사용자 조회 성공", userService.getPendingUsers());

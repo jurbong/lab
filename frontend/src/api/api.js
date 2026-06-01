@@ -27,6 +27,7 @@ export const departmentApi = {
 
 export const userApi = {
   list: async (params) => unwrap(await http.get('/api/users', { params: cleanParams(params) })),
+  options: async (params) => unwrap(await http.get('/api/users/options', { params: cleanParams(params) })),
   pending: async () => unwrap(await http.get('/api/users/pending')),
   detail: async (id) => unwrap(await http.get(`/api/users/${id}`)),
   approve: async (id, payload) => unwrap(await http.patch(`/api/users/${id}/approve`, payload)),
@@ -35,6 +36,7 @@ export const userApi = {
 
 export const laboratoryApi = {
   list: async (params) => unwrap(await http.get('/api/laboratories', { params: cleanParams(params) })),
+  my: async () => unwrap(await http.get('/api/laboratories/my')),
   options: async (params) => unwrap(await http.get('/api/laboratories/options', { params: cleanParams(params) })),
   detail: async (id) => unwrap(await http.get(`/api/laboratories/${id}`)),
   create: async (formData) => unwrap(await http.post('/api/laboratories', formData)),

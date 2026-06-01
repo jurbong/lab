@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -22,8 +23,13 @@ public class LaboratoryResponse {
     private String createdByName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<LaboratoryMemberResponse> members;
 
     public static LaboratoryResponse from(Laboratory l) {
+        return from(l, null);
+    }
+
+    public static LaboratoryResponse from(Laboratory l, List<LaboratoryMemberResponse> members) {
         return LaboratoryResponse.builder()
                 .id(l.getId())
                 .labName(l.getLabName())
@@ -38,6 +44,7 @@ public class LaboratoryResponse {
                 .createdByName(l.getCreatedBy() != null ? l.getCreatedBy().getName() : null)
                 .createdAt(l.getCreatedAt())
                 .updatedAt(l.getUpdatedAt())
+                .members(members)
                 .build();
     }
 }

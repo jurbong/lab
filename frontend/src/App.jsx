@@ -36,7 +36,7 @@ function App() {
 
   const renderPage = () => {
     switch (page) {
-      case 'users': return <UserManagement />;
+      case 'users': return <UserManagement user={user} />;
       case 'labs': return <LabManagement user={user} />;
       case 'chemicals': return <ChemicalManagement user={user} />;
       case 'wastes': return <WasteManagement user={user} />;

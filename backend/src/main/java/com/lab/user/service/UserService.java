@@ -40,6 +40,17 @@ public class UserService {
                 .toList();
     }
 
+    public List<UserResponse> getUserOptions(String keyword, Long departmentId) {
+        getCurrentAppUser();
+
+        return userRepository.findAll().stream()
+                .filter(u -> u.getStatus() == UserStatus.APPROVED)
+                .filter(u -> departmentId == null || (u.getDepartment() != null && u.getDepartment().getId().equals(departmentId)))
+                .filter(u -> keyword == null || keyword.isBlank() || matchesKeyword(u, keyword))
+                .map(UserResponse::from)
+                .toList();
+    }
+
     public List<UserResponse> getPendingUsers() {
         requireSystemAdmin();
         return userRepository.findByStatus(UserStatus.PENDING).stream()
@@ -101,6 +112,7 @@ public class UserService {
                 || contains(u.getEmail(), k)
                 || contains(u.getPhone(), k)
                 || (u.getDepartment() != null && contains(u.getDepartment().getName(), k))
+                || (u.getDepartment() != null && contains(u.getDepartment().getDisplayName(), k))
                 || (u.getAdminDepartment() != null && contains(u.getAdminDepartment().name(), k));
     }
 

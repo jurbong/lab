@@ -6,6 +6,7 @@ import com.lab.global.exception.ApiException;
 import com.lab.global.file.FileUploadService;
 import com.lab.global.security.AuthUtil;
 import com.lab.laboratory.dto.LaboratoryCreateRequest;
+import com.lab.laboratory.dto.LaboratoryMemberResponse;
 import com.lab.laboratory.dto.LaboratoryOptionResponse;
 import com.lab.laboratory.dto.LaboratoryResponse;
 import com.lab.laboratory.entity.LabMemberRole;
@@ -37,9 +38,7 @@ public class LaboratoryService {
     private final FileUploadService fileUploadService;
 
     public List<LaboratoryResponse> getLaboratories(String keyword, Long departmentId, String labType) {
-        AppUser currentUser = getCurrentUser();
-
-        return getAccessibleLaboratories(currentUser).stream()
+        return laboratoryRepository.findAll().stream()
                 .filter(l -> departmentId == null || (l.getDepartment() != null && l.getDepartment().getId().equals(departmentId)))
                 .filter(l -> labType == null || labType.isBlank() || labType.equalsIgnoreCase(l.getLabType()))
                 .filter(l -> keyword == null || keyword.isBlank() || matchesKeyword(l, keyword))
@@ -47,10 +46,19 @@ public class LaboratoryService {
                 .toList();
     }
 
-    public List<LaboratoryOptionResponse> getLaboratoryOptions(String keyword, Long departmentId) {
+    public List<LaboratoryResponse> getMyLaboratories() {
         AppUser currentUser = getCurrentUser();
+        Set<Long> seen = new HashSet<>();
 
-        return getAccessibleLaboratories(currentUser).stream()
+        return laboratoryMemberRepository.findByUserId(currentUser.getId()).stream()
+                .map(LaboratoryMember::getLaboratory)
+                .filter(l -> seen.add(l.getId()))
+                .map(LaboratoryResponse::from)
+                .toList();
+    }
+
+    public List<LaboratoryOptionResponse> getLaboratoryOptions(String keyword, Long departmentId) {
+        return laboratoryRepository.findAll().stream()
                 .filter(l -> departmentId == null || (l.getDepartment() != null && l.getDepartment().getId().equals(departmentId)))
                 .filter(l -> keyword == null || keyword.isBlank() || matchesKeyword(l, keyword))
                 .map(LaboratoryOptionResponse::from)
@@ -59,16 +67,19 @@ public class LaboratoryService {
 
     public LaboratoryResponse getLaboratory(Long id) {
         Laboratory lab = findLaboratory(id);
-        checkLabAccess(lab, getCurrentUser());
 
-        return LaboratoryResponse.from(lab);
+        List<LaboratoryMemberResponse> members = laboratoryMemberRepository.findByLaboratoryId(id).stream()
+                .map(LaboratoryMemberResponse::from)
+                .toList();
+
+        return LaboratoryResponse.from(lab, members);
     }
 
     @Transactional
     public LaboratoryResponse createLaboratory(LaboratoryCreateRequest r, MultipartFile image) {
         AppUser creator = getCurrentUser();
 
-        if (creator.getRole() != UserRole.LAB_MEMBER && creator.getRole() != UserRole.ADMIN) {
+        if (!canCreateLaboratory(creator)) {
             throw ApiException.forbidden("연구실 등록 권한이 필요합니다.");
         }
 
@@ -78,12 +89,20 @@ public class LaboratoryService {
 
         Department department = resolveDepartment(r.getDepartmentId(), r.getDepartment());
 
+        AppUser manager = null;
+        String managerName = r.getManagerName();
+
+        if (r.getManagerId() != null) {
+            manager = findUser(r.getManagerId());
+            managerName = manager.getName();
+        }
+
         String imageUrl = fileUploadService.upload(image, "labs");
 
         Laboratory lab = Laboratory.builder()
                 .labName(r.getLabName())
                 .department(department)
-                .managerName(r.getManagerName())
+                .managerName(managerName)
                 .location(r.getLocation())
                 .labType(r.getLabType())
                 .imageUrl(imageUrl)
@@ -92,7 +111,24 @@ public class LaboratoryService {
 
         Laboratory saved = laboratoryRepository.save(lab);
 
-        saveMember(saved, creator);
+        Set<Long> memberIds = new HashSet<>();
+
+        if (r.getMemberIds() != null) {
+            memberIds.addAll(r.getMemberIds());
+        }
+
+        if (manager != null) {
+            memberIds.add(manager.getId());
+        }
+
+        if (memberIds.isEmpty()) {
+            memberIds.add(creator.getId());
+        }
+
+        for (Long memberId : memberIds) {
+            AppUser member = findUser(memberId);
+            saveMember(saved, member);
+        }
 
         return LaboratoryResponse.from(saved);
     }
@@ -147,6 +183,17 @@ public class LaboratoryService {
     public AppUser getCurrentUser() {
         return userRepository.findById(AuthUtil.getCurrentUserId())
                 .orElseThrow(() -> ApiException.notFound("사용자를 찾을 수 없습니다."));
+    }
+
+    private boolean canCreateLaboratory(AppUser user) {
+        return user.getRole() == UserRole.ADMIN
+                || user.getRole() == UserRole.GROUP_MANAGER
+                || user.getRole() == UserRole.LAB_MEMBER;
+    }
+
+    private AppUser findUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> ApiException.badRequest("선택한 사용자를 찾을 수 없습니다."));
     }
 
     private void saveMember(Laboratory lab, AppUser user) {

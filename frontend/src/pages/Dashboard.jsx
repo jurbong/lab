@@ -5,8 +5,8 @@ function Dashboard({ user }) {
     <section className="page">
       <h2>대시보드</h2>
       <div className="cards three">
-        <div className="card"><strong>{user?.name}</strong><span>로그인 사용자</span></div>
-        <div className="card"><strong>{roleLabel(user?.role)}</strong><span>현재 권한</span></div>
+        <div className="card"><strong>로그인 사용자</strong><span>{user?.name}</span></div>
+        <div className="card"><strong>현재 권한</strong><span>{roleLabel(user?.role)}</span></div>
       </div>
     </section>
   );

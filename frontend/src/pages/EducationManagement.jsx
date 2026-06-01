@@ -35,7 +35,6 @@ function EducationManagement({ user }) {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const create = async (e) => {
@@ -117,14 +116,14 @@ function EducationManagement({ user }) {
               placeholder="예: 신규교육, 정기교육"
             />
 
-            <label className="form-field">
-              <span>교육 동영상</span>
-              <input
-                type="file"
-                accept="video/*"
-                onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-              />
-            </label>
+            <TextInput
+              label="교육 동영상"
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+              buttonText="동영상 선택"
+              helperText="MP4, WEBM, MOV, AVI 형식의 교육 동영상을 업로드하세요."
+              onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+            />
 
             <TextArea
               label="설명"

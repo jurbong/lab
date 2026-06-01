@@ -35,7 +35,6 @@ function InspectionManagement({ user }) {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const create = async (e) => {
@@ -117,14 +116,14 @@ function InspectionManagement({ user }) {
               placeholder="예: 정기점검, 특별점검"
             />
 
-            <label className="form-field">
-              <span>점검 양식 파일</span>
-              <input
-                type="file"
-                accept=".pdf,.hwp,.hwpx,.doc,.docx,.xls,.xlsx"
-                onChange={(e) => setFormFile(e.target.files?.[0] || null)}
-              />
-            </label>
+            <TextInput
+              label="점검 양식 파일"
+              type="file"
+              accept=".pdf,.hwp,.hwpx,.doc,.docx,.xls,.xlsx"
+              buttonText="양식 파일 선택"
+              helperText="PDF, HWP, DOCX, XLSX 형식의 점검 양식을 업로드하세요."
+              onChange={(e) => setFormFile(e.target.files?.[0] || null)}
+            />
 
             <TextArea
               label="설명"

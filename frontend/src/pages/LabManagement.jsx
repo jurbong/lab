@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { departmentApi, laboratoryApi } from '../api/api';
+import { departmentApi, laboratoryApi, userApi } from '../api/api';
 import { DetailGrid, DetailModal, EmptyState, SearchPanel, SelectInput, TextInput } from '../components/FormControls';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -14,19 +14,42 @@ const initialForm = {
   labName: '',
   departmentId: '',
   managerName: '',
+  managerId: '',
   location: '',
   labType: '',
+  memberIds: [],
 };
 
-function LabManagement() {
+function LabManagement({ user }) {
   const [filters, setFilters] = useState(initialFilters);
   const [form, setForm] = useState(initialForm);
   const [imageFile, setImageFile] = useState(null);
 
   const [departments, setDepartments] = useState([]);
   const [labs, setLabs] = useState([]);
+  const [myLabs, setMyLabs] = useState([]);
   const [detail, setDetail] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+
+  const [managerKeyword, setManagerKeyword] = useState('');
+  const [managerResults, setManagerResults] = useState([]);
+  const [selectedManager, setSelectedManager] = useState(null);
+
+  const [memberKeyword, setMemberKeyword] = useState('');
+  const [memberResults, setMemberResults] = useState([]);
+  const [selectedMembers, setSelectedMembers] = useState([]);
+
+  const isSafetyOrEducationDepartment =
+    user?.adminDepartment === 'SAFETY' ||
+    user?.adminDepartment === 'SAFETY_MANAGEMENT' ||
+    user?.adminDepartment === 'SAFETY_DEPARTMENT' ||
+    user?.adminDepartment === 'EDUCATION' ||
+    user?.adminDepartment === 'EDUCATION_MANAGEMENT' ||
+    user?.adminDepartment === 'EDUCATION_DEPARTMENT';
+
+  const canCreateLab =
+    ['ADMIN', 'GROUP_MANAGER', 'LAB_MEMBER'].includes(user?.role) &&
+    !isSafetyOrEducationDepartment;
 
   const load = async (next = filters) => {
     try {
@@ -36,10 +59,18 @@ function LabManagement() {
     }
   };
 
+  const loadMyLabs = async () => {
+    try {
+      setMyLabs(await laboratoryApi.my());
+    } catch (e) {
+      console.warn(e.message);
+    }
+  };
+
   useEffect(() => {
     departmentApi.list().then(setDepartments).catch(() => {});
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadMyLabs();
   }, []);
 
   const submitSearch = (e) => {
@@ -52,13 +83,99 @@ function LabManagement() {
     load(initialFilters);
   };
 
+  const searchManagers = async () => {
+    try {
+      const result = await userApi.options({
+        keyword: managerKeyword,
+        departmentId: form.departmentId || undefined,
+      });
+      setManagerResults(result);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  const searchMembers = async () => {
+    try {
+      const result = await userApi.options({
+        keyword: memberKeyword,
+        departmentId: form.departmentId || undefined,
+      });
+      setMemberResults(result);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  const selectManager = (targetUser) => {
+    setSelectedManager(targetUser);
+
+    setForm((prev) => ({
+      ...prev,
+      managerId: targetUser.id,
+      managerName: targetUser.name,
+      memberIds: Array.from(new Set([...prev.memberIds, targetUser.id])),
+    }));
+
+    setSelectedMembers((prev) => {
+      const exists = prev.some((m) => m.id === targetUser.id);
+      if (exists) return prev;
+      return [...prev, targetUser];
+    });
+  };
+
+  const addMember = (targetUser) => {
+    setSelectedMembers((prev) => {
+      const exists = prev.some((m) => m.id === targetUser.id);
+      if (exists) return prev;
+      return [...prev, targetUser];
+    });
+
+    setForm((prev) => ({
+      ...prev,
+      memberIds: Array.from(new Set([...prev.memberIds, targetUser.id])),
+    }));
+  };
+
+  const removeMember = (targetUserId) => {
+    if (selectedManager?.id === targetUserId) {
+      alert('책임자는 구성원에서 제거할 수 없습니다.');
+      return;
+    }
+
+    setSelectedMembers((prev) => prev.filter((m) => m.id !== targetUserId));
+
+    setForm((prev) => ({
+      ...prev,
+      memberIds: prev.memberIds.filter((id) => id !== targetUserId),
+    }));
+  };
+
+  const resetCreateForm = () => {
+    setForm(initialForm);
+    setImageFile(null);
+    setManagerKeyword('');
+    setManagerResults([]);
+    setSelectedManager(null);
+    setMemberKeyword('');
+    setMemberResults([]);
+    setSelectedMembers([]);
+  };
+
   const create = async (e) => {
     e.preventDefault();
+
+    if (!canCreateLab) {
+      alert('연구실 등록 권한이 없습니다.');
+      return;
+    }
 
     try {
       const payload = {
         ...form,
         departmentId: form.departmentId ? Number(form.departmentId) : null,
+        managerId: form.managerId ? Number(form.managerId) : null,
+        memberIds: form.memberIds.map((id) => Number(id)),
       };
 
       const formData = new FormData();
@@ -77,10 +194,10 @@ function LabManagement() {
       await laboratoryApi.create(formData);
 
       alert('연구실 등록 완료');
-      setForm(initialForm);
-      setImageFile(null);
+      resetCreateForm();
       setShowCreate(false);
       load();
+      loadMyLabs();
     } catch (error) {
       alert(error.message);
     }
@@ -100,16 +217,40 @@ function LabManagement() {
     return `${API_BASE_URL}${path}`;
   };
 
+  const userDisplay = (targetUser) => {
+    return `${targetUser.name || '-'} / ${targetUser.userId || '-'} / ${targetUser.departmentDisplayName || targetUser.departmentName || '-'}`;
+  };
+
+  const renderLabRows = (targetLabs) => (
+    <tbody>
+      {targetLabs.map((lab) => (
+        <tr key={lab.id}>
+          <td>{lab.labName}</td>
+          <td>{lab.departmentDisplayName || lab.departmentName || '-'}</td>
+          <td>{lab.managerName || '-'}</td>
+          <td>
+            <button className="secondary" onClick={() => openDetail(lab.id)}>
+              상세 조회
+            </button>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  );
+
   return (
     <section className="page">
       <div className="page-head">
         <h2>연구실 관리</h2>
-        <button onClick={() => setShowCreate(!showCreate)}>
-          {showCreate ? '등록 닫기' : '연구실 등록'}
-        </button>
+
+        {canCreateLab && (
+          <button onClick={() => setShowCreate(!showCreate)}>
+            {showCreate ? '등록 닫기' : '연구실 등록'}
+          </button>
+        )}
       </div>
 
-      {showCreate && (
+      {showCreate && canCreateLab && (
         <form className="create-card" onSubmit={create}>
           <h3>연구실 등록</h3>
 
@@ -136,12 +277,6 @@ function LabManagement() {
             </SelectInput>
 
             <TextInput
-              label="책임자명"
-              value={form.managerName}
-              onChange={(e) => setForm({ ...form, managerName: e.target.value })}
-            />
-
-            <TextInput
               label="위치"
               value={form.location}
               onChange={(e) => setForm({ ...form, location: e.target.value })}
@@ -154,19 +289,189 @@ function LabManagement() {
               placeholder="예: 실험실, 일반연구실"
             />
 
-            <label className="form-field">
-              <span>연구실 이미지</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+            <TextInput
+              label="연구실 이미지"
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              buttonText="이미지 선택"
+              helperText="PNG, JPG, JPEG, WEBP 형식의 이미지를 업로드하세요."
+              onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+            />
+          </div>
+
+          <div className="create-card" style={{ marginTop: '16px' }}>
+            <h4>책임자 선택</h4>
+
+            <div className="form-grid">
+              <TextInput
+                label="책임자 검색"
+                value={managerKeyword}
+                onChange={(e) => setManagerKeyword(e.target.value)}
+                placeholder="이름, 아이디, 학과/부서 검색"
               />
-            </label>
+
+              <label className="form-field">
+                <span>&nbsp;</span>
+                <button type="button" onClick={searchManagers}>
+                  검색
+                </button>
+              </label>
+            </div>
+
+            <div className="table-wrap" style={{ marginTop: '8px' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>이름</th>
+                    <th>아이디</th>
+                    <th>학과/부서</th>
+                    <th>선택</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {managerResults.map((targetUser) => (
+                    <tr key={targetUser.id}>
+                      <td>{targetUser.name}</td>
+                      <td>{targetUser.userId}</td>
+                      <td>{targetUser.departmentDisplayName || targetUser.departmentName || '-'}</td>
+                      <td>
+                        <button type="button" onClick={() => selectManager(targetUser)}>
+                          선택
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {managerResults.length === 0 && <EmptyState />}
+            </div>
+
+            <div style={{ marginTop: '12px' }}>
+              <b>선택된 책임자</b>
+              <p>{selectedManager ? userDisplay(selectedManager) : '선택된 책임자가 없습니다.'}</p>
+            </div>
+          </div>
+
+          <div className="create-card" style={{ marginTop: '16px' }}>
+            <h4>연구실 구성원 선택</h4>
+
+            <div className="form-grid">
+              <TextInput
+                label="구성원 검색"
+                value={memberKeyword}
+                onChange={(e) => setMemberKeyword(e.target.value)}
+                placeholder="이름, 아이디, 학과/부서 검색"
+              />
+
+              <label className="form-field">
+                <span>&nbsp;</span>
+                <button type="button" onClick={searchMembers}>
+                  검색
+                </button>
+              </label>
+            </div>
+
+            <div className="table-wrap" style={{ marginTop: '8px' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>이름</th>
+                    <th>아이디</th>
+                    <th>학과/부서</th>
+                    <th>추가</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {memberResults.map((targetUser) => (
+                    <tr key={targetUser.id}>
+                      <td>{targetUser.name}</td>
+                      <td>{targetUser.userId}</td>
+                      <td>{targetUser.departmentDisplayName || targetUser.departmentName || '-'}</td>
+                      <td>
+                        <button type="button" onClick={() => addMember(targetUser)}>
+                          추가
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {memberResults.length === 0 && <EmptyState />}
+            </div>
+
+            <div style={{ marginTop: '12px' }}>
+              <b>선택된 구성원</b>
+
+              {selectedMembers.length === 0 ? (
+                <p>선택된 구성원이 없습니다.</p>
+              ) : (
+                <div className="table-wrap" style={{ marginTop: '8px' }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>이름</th>
+                        <th>아이디</th>
+                        <th>학과/부서</th>
+                        <th>관리</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {selectedMembers.map((member) => (
+                        <tr key={member.id}>
+                          <td>
+                            {member.name}
+                            {selectedManager?.id === member.id ? ' (책임자)' : ''}
+                          </td>
+                          <td>{member.userId}</td>
+                          <td>{member.departmentDisplayName || member.departmentName || '-'}</td>
+                          <td>
+                            <button
+                              type="button"
+                              className="danger"
+                              onClick={() => removeMember(member.id)}
+                              disabled={selectedManager?.id === member.id}
+                            >
+                              삭제
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
 
           <button type="submit">등록</button>
         </form>
       )}
+
+      <div style={{ marginTop: '16px' }}>
+        <h3>내 연구실</h3>
+
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>연구실명</th>
+                <th>학과/부서</th>
+                <th>책임자명</th>
+                <th>상세</th>
+              </tr>
+            </thead>
+
+            {renderLabRows(myLabs)}
+          </table>
+
+          {myLabs.length === 0 && <EmptyState />}
+        </div>
+      </div>
 
       <SearchPanel onSubmit={submitSearch} onReset={reset}>
         <TextInput
@@ -198,6 +503,8 @@ function LabManagement() {
       </SearchPanel>
 
       <div className="table-wrap">
+        <h3>전체 연구실</h3>
+
         <table>
           <thead>
             <tr>
@@ -208,20 +515,7 @@ function LabManagement() {
             </tr>
           </thead>
 
-          <tbody>
-            {labs.map((lab) => (
-              <tr key={lab.id}>
-                <td>{lab.labName}</td>
-                <td>{lab.departmentDisplayName || lab.departmentName || '-'}</td>
-                <td>{lab.managerName || '-'}</td>
-                <td>
-                  <button className="secondary" onClick={() => openDetail(lab.id)}>
-                    상세 조회
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+          {renderLabRows(labs)}
         </table>
 
         {labs.length === 0 && <EmptyState />}
@@ -239,6 +533,41 @@ function LabManagement() {
               ['등록자', detail.createdByName],
             ]}
           />
+
+          <div style={{ marginTop: '16px' }}>
+            <h4>연구실 구성원</h4>
+
+            {detail.members && detail.members.length > 0 ? (
+              <div className="table-wrap" style={{ marginTop: '8px' }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>이름</th>
+                      <th>아이디</th>
+                      <th>학과/부서</th>
+                      <th>구분</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {detail.members.map((member) => (
+                      <tr key={member.id}>
+                        <td>
+                          {member.name || '-'}
+                          {detail.managerName && member.name === detail.managerName ? ' (책임자)' : ''}
+                        </td>
+                        <td>{member.loginId || '-'}</td>
+                        <td>{member.departmentDisplayName || member.departmentName || '-'}</td>
+                        <td>{member.memberRole || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p>등록된 연구실 구성원이 없습니다.</p>
+            )}
+          </div>
 
           {detail.imageUrl && (
             <div className="detail-file">

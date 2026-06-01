@@ -29,6 +29,11 @@ public class LaboratoryController {
         return ApiResponse.ok("연구실 목록 조회 성공", laboratoryService.getLaboratories(keyword, departmentId, labType));
     }
 
+    @GetMapping("/my")
+    public ApiResponse<List<LaboratoryResponse>> myLaboratories() {
+        return ApiResponse.ok("내 연구실 목록 조회 성공", laboratoryService.getMyLaboratories());
+    }
+
     @GetMapping("/options")
     public ApiResponse<List<LaboratoryOptionResponse>> options(
             @RequestParam(required = false) String keyword,
