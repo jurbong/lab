@@ -6,3 +6,5 @@ backend/target/
 backend/build/
 backend/.gradle/
 .env
+
+backend/uploads/
