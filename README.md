@@ -21,10 +21,10 @@ DBeaver 또는 MySQL CLI에서 실행:
 
 ## 2. 백엔드 실행
 1. IntelliJ IDEA 에서 `backend` 폴더의 `build.gradle` 을 열어 프로젝트로 import (Gradle 자동 설정)
-2. `LabSafetyApplication` 실행
+2. `LabSafetyBackendApplication` 실행
 3. 최초 실행 시 관리자 계정이 자동 생성됩니다.
    - 아이디: `admin`
-   - 비밀번호: `admin1234`
+   - 비밀번호: `1234`
 4. 테이블은 `spring.jpa.hibernate.ddl-auto=update` 설정으로 자동 생성됩니다.
 
 ---
@@ -39,7 +39,7 @@ DBeaver 또는 MySQL CLI에서 실행:
 ---
 
 ## 4. 사용 흐름
-1. `admin / admin1234` 로 로그인하면 모든 메뉴 사용 가능
+1. `admin / 1234` 로 로그인하면 모든 메뉴 사용 가능
 2. 일반 사용자: 회원가입 신청(PENDING) → 관리자가 [가입승인]에서 권한 부여 + 승인(APPROVED) → 로그인
 3. 권한 요약
    - 사용자관리 / 가입승인: 관리자(SYSTEM_ADMIN, LAB_ADMIN)만
