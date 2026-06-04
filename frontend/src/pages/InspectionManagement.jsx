@@ -139,9 +139,9 @@ function InspectionManagement({ user }) {
             <TextInput
               label="점검 양식 파일"
               type="file"
-              accept=".pdf,.hwp,.hwpx,.doc,.docx,.xls,.xlsx"
+              accept=".html,.htm"
               buttonText="양식 파일 선택"
-              helperText="PDF, HWP, DOCX, XLSX 형식의 점검 양식을 업로드하세요."
+              helperText="HTML 형식의 점검 양식을 업로드하세요"
               onChange={(e) => setFormFile(e.target.files?.[0] || null)}
             />
 
@@ -239,14 +239,20 @@ function InspectionManagement({ user }) {
 
           {detail.filePath && (
             <div className="detail-file">
-              <h4>점검 양식 파일</h4>
+              <h4>점검 양식 미리보기</h4>
+
+              <iframe
+                src={getFileUrl(detail.filePath)}
+                title="점검 양식 미리보기"
+                className="inspection-form-preview"
+              ></iframe>
               <a
                 href={getFileUrl(detail.filePath)}
                 target="_blank"
                 rel="noreferrer"
                 className="secondary"
               >
-                파일 열기 / 다운로드
+                새창에서 열기
               </a>
             </div>
           )}

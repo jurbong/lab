@@ -1,5 +1,5 @@
 :root {
-  font-family: Arial, 'Noto Sans KR', sans-serif;
+  font-family: Arial, "Noto Sans KR", sans-serif;
   color: #1f2937;
   background: #f3f5f8;
 }
@@ -277,7 +277,7 @@ button.danger {
 .field select:focus,
 .field textarea:focus {
   border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .field small {
@@ -376,7 +376,7 @@ td.actions {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, .45);
+  background: rgba(15, 23, 42, 0.45);
   display: grid;
   place-items: center;
   padding: 24px;
@@ -389,7 +389,7 @@ td.actions {
   overflow: auto;
   background: white;
   border-radius: 20px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, .25);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
 }
 
 .modal-header {
@@ -546,4 +546,12 @@ td.actions {
   .file-upload-name {
     max-width: 100%;
   }
+}
+
+.inspection-form-preview {
+  width: 100%;
+  min-height: 600px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
 }
