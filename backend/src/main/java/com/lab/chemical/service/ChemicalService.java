@@ -72,9 +72,8 @@ public class ChemicalService {
 
     private void requireApprovedViewer() {
         UserRole role = AuthUtil.getCurrentUserRole();
-        if (role != UserRole.ADMIN && role != UserRole.GROUP_MANAGER && role != UserRole.SAFETY_MANAGER
-                && role != UserRole.EDUCATION_MANAGER && role != UserRole.LAB_MEMBER) {
-            throw ApiException.forbidden("화학물질 조회 권한이 필요합니다.");
+        if (role != UserRole.ADMIN) {
+            throw ApiException.forbidden("화학물질 조회는 시스템 관리자만 가능합니다.");
         }
     }
 
