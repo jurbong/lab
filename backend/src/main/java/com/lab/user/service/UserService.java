@@ -1,14 +1,17 @@
 package com.lab.user.service;
 
+import com.lab.department.entity.Department;
+import com.lab.department.repository.DepartmentRepository;
 import com.lab.global.exception.ApiException;
 import com.lab.global.security.AuthUtil;
-import com.lab.user.dto.ApproveUserRequest;
+import com.lab.user.dto.UserCreateRequest;
 import com.lab.user.dto.UserResponse;
 import com.lab.user.entity.AppUser;
 import com.lab.user.entity.UserRole;
 import com.lab.user.entity.UserStatus;
 import com.lab.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,16 +23,13 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final DepartmentRepository departmentRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public List<UserResponse> getUsers(String keyword, UserStatus status, UserRole role, Long departmentId, String adminDepartment) {
-        AppUser currentUser = getCurrentAppUser();
-
-        if (!AuthUtil.canViewUsers(currentUser.getRole())) {
-            throw ApiException.forbidden("사용자 조회 권한이 필요합니다.");
-        }
+        getCurrentAppUser();
 
         return userRepository.findAll().stream()
-                .filter(u -> canCurrentUserViewTarget(currentUser, u))
                 .filter(u -> status == null || u.getStatus() == status)
                 .filter(u -> role == null || u.getRole() == role)
                 .filter(u -> departmentId == null || (u.getDepartment() != null && u.getDepartment().getId().equals(departmentId)))
@@ -51,58 +51,44 @@ public class UserService {
                 .toList();
     }
 
-    public List<UserResponse> getPendingUsers() {
-        requireSystemAdmin();
-        return userRepository.findByStatus(UserStatus.PENDING).stream()
-                .map(UserResponse::from)
-                .toList();
+    public UserResponse getUser(Long id) {
+        getCurrentAppUser();
+        AppUser targetUser = findUser(id);
+        return UserResponse.from(targetUser);
     }
 
-    public UserResponse getUser(Long id) {
-        AppUser currentUser = getCurrentAppUser();
-        AppUser targetUser = findUser(id);
+    @Transactional
+    public UserResponse createUser(UserCreateRequest r) {
+        requireSystemAdmin();
 
-        if (canCurrentUserViewTarget(currentUser, targetUser)) {
-            return UserResponse.from(targetUser);
+        if (userRepository.existsByUserId(r.getUserId())) {
+            throw ApiException.badRequest("이미 사용 중인 아이디입니다.");
+        }
+        if (userRepository.existsByEmail(r.getEmail())) {
+            throw ApiException.badRequest("이미 사용 중인 이메일입니다.");
         }
 
-        throw ApiException.forbidden("사용자 상세 조회 권한이 필요합니다.");
-    }
+        Department department = resolveDepartment(r.getDepartmentId(), r.getDepartment());
 
-    @Transactional
-    public void approveUser(Long id, ApproveUserRequest r) {
-        requireSystemAdmin();
+        AppUser user = userRepository.save(AppUser.builder()
+                .userId(r.getUserId())
+                .password(passwordEncoder.encode(r.getPassword()))
+                .name(r.getName())
+                .gender(r.getGender())
+                .department(department)
+                .adminDepartment(r.getAdminDepartment())
+                .email(r.getEmail())
+                .phone(r.getPhone())
+                .role(r.getRole())
+                .status(UserStatus.APPROVED)
+                .build());
 
-        AppUser user = findUser(id);
-        user.setRole(r.getRole());
-        user.setAdminDepartment(r.getAdminDepartment());
-        user.setStatus(UserStatus.APPROVED);
-    }
-
-    @Transactional
-    public void rejectUser(Long id) {
-        requireSystemAdmin();
-        AppUser user = findUser(id);
-        user.setStatus(UserStatus.REJECTED);
+        return UserResponse.from(user);
     }
 
     public AppUser findUser(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> ApiException.notFound("사용자를 찾을 수 없습니다."));
-    }
-
-    private boolean canCurrentUserViewTarget(AppUser currentUser, AppUser targetUser) {
-        if (AuthUtil.isSystemAdmin(currentUser.getRole())) {
-            return true;
-        }
-
-        if (AuthUtil.isGroupAdmin(currentUser.getRole())) {
-            return currentUser.getDepartment() != null
-                    && targetUser.getDepartment() != null
-                    && currentUser.getDepartment().getId().equals(targetUser.getDepartment().getId());
-        }
-
-        return currentUser.getId().equals(targetUser.getId());
     }
 
     private boolean matchesKeyword(AppUser u, String keyword) {
@@ -118,6 +104,18 @@ public class UserService {
 
     private boolean contains(String value, String keyword) {
         return value != null && value.toLowerCase().contains(keyword);
+    }
+
+    private Department resolveDepartment(Long departmentId, String departmentName) {
+        if (departmentId != null) {
+            return departmentRepository.findById(departmentId)
+                    .orElseThrow(() -> ApiException.badRequest("선택한 학과를 찾을 수 없습니다."));
+        }
+        if (departmentName != null && !departmentName.isBlank()) {
+            return departmentRepository.findByName(departmentName)
+                    .orElseThrow(() -> ApiException.badRequest("선택한 학과를 찾을 수 없습니다."));
+        }
+        return null;
     }
 
     private AppUser getCurrentAppUser() {
