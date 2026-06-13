@@ -7,7 +7,7 @@ import { riskLabel } from '../utils/labels';
 const initialFilters = { keyword: '', wasteType: '', hazardLevel: '', labId: '', departmentId: '', unit: '' };
 const initialForm = { wasteType: '', quantity: '', unit: 'kg', generatedDate: '', storageLocation: '', hazardLevel: 'LOW', labId: '' };
 
-function WasteManagement() {
+function WasteManagement({ user }) {
   const [filters, setFilters] = useState(initialFilters);
   const [form, setForm] = useState(initialForm);
   const [items, setItems] = useState([]);
@@ -16,6 +16,8 @@ function WasteManagement() {
   const [riskLevels, setRiskLevels] = useState([]);
   const [detail, setDetail] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+
+  const canCreateWaste = ['ADMIN', 'LAB_MEMBER'].includes(user?.role);
 
   const load = async (next = filters) => { try { setItems(await wasteApi.list(next)); } catch (e) { alert(e.message); } };
   useEffect(() => {
@@ -44,7 +46,15 @@ function WasteManagement() {
 
   return (
     <section className="page">
-      <div className="page-head"><h2>폐기물 관리</h2><button onClick={() => setShowCreate(!showCreate)}>{showCreate ? '등록 닫기' : '폐기물 등록'}</button></div>
+      <div className="page-head">
+        <h2>폐기물 관리</h2>
+        {canCreateWaste && (
+          <button onClick={() => setShowCreate(!showCreate)}>
+            {showCreate ? '등록 닫기' : '폐기물 등록'}
+          </button>
+        )}
+      </div>
+
       {showCreate && <form className="create-card" onSubmit={create}>
         <h3>폐기물 등록</h3>
         <p>담당자 ID는 입력하지 않습니다. 등록 시 로그인한 사용자가 담당자로 저장됩니다.</p>

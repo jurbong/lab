@@ -8,7 +8,7 @@ const menus = [
   { key: 'chemicals', label: '화학물질 관리' },
   { key: 'wastes', label: '폐기물 관리' },
   { key: 'inspections', label: '점검 양식 관리', roles: ['ADMIN', 'SAFETY_MANAGER'] },
-  { key: 'education', label: '안전교육 관리' },
+  { key: 'education', label: '안전교육 관리', roles: ['ADMIN', 'EDUCATION_MANAGER', 'LAB_MEMBER'] },
 ];
 
 function Layout({ user, page, setPage, onLogout, children }) {
