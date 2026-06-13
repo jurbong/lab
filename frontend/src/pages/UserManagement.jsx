@@ -1,26 +1,35 @@
 import { useEffect, useState } from 'react';
 import { departmentApi, optionApi, userApi } from '../api/api';
-import { DetailGrid, DetailModal, EmptyState, SearchPanel, SelectInput, TextInput } from '../components/FormControls';
+import http, { unwrap } from '../api/http';
+import { DetailGrid, DetailModal, EmptyState, SelectInput, TextInput } from '../components/FormControls';
 import { adminDepartmentLabel, roleLabel, statusLabel } from '../utils/labels';
 
-const initialFilters = { keyword: '', status: '', role: '', departmentId: '', adminDepartment: '' };
+const initialCreateForm = {
+  userId: '',
+  password: '',
+  name: '',
+  gender: '',
+  departmentId: '',
+  email: '',
+  phone: '',
+  role: 'LAB_MEMBER',
+  adminDepartment: '',
+};
 
 function UserManagement({ user }) {
   const isSystemAdmin = user?.role === 'ADMIN';
 
-  const [filters, setFilters] = useState(initialFilters);
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [statuses, setStatuses] = useState([]);
   const [adminDepartments, setAdminDepartments] = useState([]);
   const [detail, setDetail] = useState(null);
-  const [approveTarget, setApproveTarget] = useState(null);
-  const [approveForm, setApproveForm] = useState({ role: 'LAB_MEMBER', adminDepartment: '' });
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState(initialCreateForm);
 
-  const load = async (next = filters) => {
+  const load = async () => {
     try {
-      setUsers(await userApi.list(next));
+      setUsers(await userApi.list());
     } catch (e) {
       alert(e.message);
     }
@@ -29,22 +38,15 @@ function UserManagement({ user }) {
   useEffect(() => {
     departmentApi.list().then(setDepartments).catch(() => {});
     optionApi.roles().then(setRoles).catch(() => {});
-    optionApi.statuses().then(setStatuses).catch(() => {});
     optionApi.adminDepartments().then(setAdminDepartments).catch(() => {});
-    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const change = (e) => setFilters({ ...filters, [e.target.name]: e.target.value });
-
-  const reset = () => {
-    setFilters(initialFilters);
-    load(initialFilters);
-  };
+  const changeCreateForm = (e) => setCreateForm({ ...createForm, [e.target.name]: e.target.value });
 
   const submit = (e) => {
     e.preventDefault();
-    load(filters);
+    load();
   };
 
   const openDetail = async (id) => {
@@ -55,29 +57,18 @@ function UserManagement({ user }) {
     }
   };
 
-  const approve = async () => {
-    if (!approveTarget) return;
-
+  const createUser = async (e) => {
+    e.preventDefault();
     try {
-      await userApi.approve(approveTarget.id, {
-        role: approveForm.role,
-        adminDepartment: approveForm.adminDepartment || null,
-      });
+      await unwrap(await http.post('/api/users', {
+        ...createForm,
+        departmentId: createForm.departmentId ? Number(createForm.departmentId) : null,
+        adminDepartment: createForm.adminDepartment || null,
+      }));
 
-      alert('승인 완료');
-      setApproveTarget(null);
-      load();
-    } catch (e) {
-      alert(e.message);
-    }
-  };
-
-  const reject = async (id) => {
-    if (!confirm('해당 사용자를 승인 거절할까요?')) return;
-
-    try {
-      await userApi.reject(id);
-      alert('거절 완료');
+      alert('사용자 등록 완료');
+      setCreateForm(initialCreateForm);
+      setShowCreate(false);
       load();
     } catch (e) {
       alert(e.message);
@@ -86,73 +77,126 @@ function UserManagement({ user }) {
 
   return (
     <section className="page">
-      <h2>사용자 관리</h2>
+      <div className="page-head">
+        <h2>사용자 관리</h2>
 
-      <SearchPanel onSubmit={submit} onReset={reset}>
-        <TextInput
-          label="검색"
-          name="keyword"
-          value={filters.keyword}
-          onChange={change}
-          placeholder="아이디, 이름, 이메일 검색"
-        />
+        {isSystemAdmin && (
+          <button onClick={() => setShowCreate(!showCreate)}>
+            {showCreate ? '등록 닫기' : '사용자 등록'}
+          </button>
+        )}
+      </div>
 
-        <SelectInput
-          label="상태"
-          name="status"
-          value={filters.status}
-          onChange={change}
-        >
-          <option value="">전체</option>
-          {statuses.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </SelectInput>
+      {showCreate && isSystemAdmin && (
+        <form className="create-card" onSubmit={createUser}>
+          <h3>사용자 등록</h3>
 
-        <SelectInput
-          label="권한"
-          name="role"
-          value={filters.role}
-          onChange={change}
-        >
-          <option value="">전체</option>
-          {roles.map((r) => (
-            <option key={r.value} value={r.value}>
-              {r.label}
-            </option>
-          ))}
-        </SelectInput>
+          <div className="form-grid">
+            <TextInput
+              label="아이디"
+              name="userId"
+              value={createForm.userId}
+              onChange={changeCreateForm}
+              required
+            />
 
-        <SelectInput
-          label="학과/부서"
-          name="departmentId"
-          value={filters.departmentId}
-          onChange={change}
-        >
-          <option value="">전체</option>
-          {departments.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.displayName || d.name}
-            </option>
-          ))}
-        </SelectInput>
+            <TextInput
+              label="비밀번호"
+              name="password"
+              type="password"
+              value={createForm.password}
+              onChange={changeCreateForm}
+              required
+            />
 
-        <SelectInput
-          label="관리 부서"
-          name="adminDepartment"
-          value={filters.adminDepartment}
-          onChange={change}
-        >
-          <option value="">전체</option>
-          {adminDepartments.map((d) => (
-            <option key={d.value} value={d.value}>
-              {d.label}
-            </option>
-          ))}
-        </SelectInput>
-      </SearchPanel>
+            <TextInput
+              label="이름"
+              name="name"
+              value={createForm.name}
+              onChange={changeCreateForm}
+              required
+            />
+
+            <SelectInput
+              label="성별"
+              name="gender"
+              value={createForm.gender}
+              onChange={changeCreateForm}
+            >
+              <option value="">선택 안 함</option>
+              <option value="남성">남성</option>
+              <option value="여성">여성</option>
+            </SelectInput>
+
+            <SelectInput
+              label="학과/부서"
+              name="departmentId"
+              value={createForm.departmentId}
+              onChange={changeCreateForm}
+            >
+              <option value="">선택 안 함</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.displayName || d.name}
+                </option>
+              ))}
+            </SelectInput>
+
+            <TextInput
+              label="이메일"
+              name="email"
+              type="email"
+              value={createForm.email}
+              onChange={changeCreateForm}
+              required
+            />
+
+            <TextInput
+              label="전화번호"
+              name="phone"
+              value={createForm.phone}
+              onChange={changeCreateForm}
+              placeholder="010-0000-0000"
+            />
+
+            <SelectInput
+              label="권한"
+              name="role"
+              value={createForm.role}
+              onChange={changeCreateForm}
+              required
+            >
+              {roles.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </SelectInput>
+
+            <SelectInput
+              label="관리 부서"
+              name="adminDepartment"
+              value={createForm.adminDepartment}
+              onChange={changeCreateForm}
+            >
+              <option value="">해당 없음</option>
+              {adminDepartments.map((d) => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
+                </option>
+              ))}
+            </SelectInput>
+          </div>
+
+          <button type="submit">등록</button>
+        </form>
+      )}
+
+      <form className="search-panel" onSubmit={submit}>
+        <div className="filter-actions">
+          <button type="submit">조회</button>
+        </div>
+      </form>
 
       <div className="table-wrap">
         <table>
@@ -188,21 +232,6 @@ function UserManagement({ user }) {
                   >
                     상세
                   </button>
-
-                  {isSystemAdmin && u.status === 'PENDING' && (
-                    <button onClick={() => setApproveTarget(u)}>
-                      승인
-                    </button>
-                  )}
-
-                  {isSystemAdmin && u.status === 'PENDING' && (
-                    <button
-                      className="danger"
-                      onClick={() => reject(u.id)}
-                    >
-                      거절
-                    </button>
-                  )}
                 </td>
               </tr>
             ))}
@@ -230,50 +259,6 @@ function UserManagement({ user }) {
               ['관리 부서', detail.adminDepartmentLabel || adminDepartmentLabel(detail.adminDepartment)],
             ]}
           />
-        </DetailModal>
-      )}
-
-      {approveTarget && (
-        <DetailModal
-          title="사용자 승인"
-          onClose={() => setApproveTarget(null)}
-        >
-          <p>
-            <b>{approveTarget.name}</b> 사용자에게 부여할 권한을 선택하세요.
-          </p>
-
-          <div className="form-grid one">
-            <SelectInput
-              label="권한"
-              value={approveForm.role}
-              onChange={(e) =>
-                setApproveForm({ ...approveForm, role: e.target.value })
-              }
-            >
-              {roles.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </SelectInput>
-
-            <SelectInput
-              label="관리 부서"
-              value={approveForm.adminDepartment}
-              onChange={(e) =>
-                setApproveForm({ ...approveForm, adminDepartment: e.target.value })
-              }
-            >
-              <option value="">해당 없음</option>
-              {adminDepartments.map((d) => (
-                <option key={d.value} value={d.value}>
-                  {d.label}
-                </option>
-              ))}
-            </SelectInput>
-          </div>
-
-          <button onClick={approve}>승인 처리</button>
         </DetailModal>
       )}
     </section>
