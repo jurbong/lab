@@ -5,7 +5,7 @@ const menus = [
   { key: 'dashboard', label: '대시보드' },
   { key: 'users', label: '사용자 관리', roles: ['ADMIN', 'GROUP_MANAGER'] },
   { key: 'labs', label: '연구실 관리' },
-  { key: 'chemicals', label: '화학물질 관리' },
+  { key: 'chemicals', label: '화학물질 관리', roles: ['ADMIN'] },
   { key: 'wastes', label: '폐기물 관리' },
   { key: 'inspections', label: '점검 양식 관리', roles: ['ADMIN', 'SAFETY_MANAGER'] },
   { key: 'education', label: '안전교육 관리', roles: ['ADMIN', 'EDUCATION_MANAGER', 'LAB_MEMBER'] },
