@@ -2,7 +2,6 @@ package com.lab.user.repository;
 
 import com.lab.department.entity.Department;
 import com.lab.user.entity.AppUser;
-import com.lab.user.entity.UserStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -12,6 +11,5 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
     boolean existsByUserId(String userId);
     boolean existsByEmail(String email);
     Optional<AppUser> findByUserId(String userId);
-    List<AppUser> findByStatus(UserStatus status);
     List<AppUser> findByDepartment(Department department);
 }

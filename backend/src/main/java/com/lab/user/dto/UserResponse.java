@@ -63,9 +63,7 @@ public class UserResponse {
     public static String statusLabel(UserStatus status) {
         if (status == null) return null;
         return switch (status) {
-            case PENDING -> "승인 대기";
-            case APPROVED -> "승인 완료";
-            case REJECTED -> "승인 거절";
+            case APPROVED -> "등록 완료";
             case INACTIVE -> "비활성화";
         };
     }

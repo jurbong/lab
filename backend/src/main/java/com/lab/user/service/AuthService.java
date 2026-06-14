@@ -41,13 +41,11 @@ public class AuthService {
                 .userId(r.getUserId())
                 .password(passwordEncoder.encode(r.getPassword()))
                 .name(r.getName())
-                .gender(r.getGender())
                 .department(department)
-                .adminDepartment(r.getAdminDepartment())
                 .email(r.getEmail())
                 .phone(r.getPhone())
                 .role(UserRole.LAB_MEMBER)
-                .status(UserStatus.PENDING)
+                .status(UserStatus.APPROVED)
                 .build());
     }
 
