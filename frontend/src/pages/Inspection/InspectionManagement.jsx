@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { inspectionApi } from "../api/api";
+import { inspectionApi } from "../../api/api";
 import {
   DetailGrid,
   DetailModal,
@@ -8,8 +8,8 @@ import {
   TextArea,
   TextInput,
   SelectInput,
-} from "../components/FormControls";
-import { isSafetyManager } from "../utils/labels";
+} from "../../components/FormControls";
+import { isSafetyManager } from "../../utils/labels";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
@@ -27,10 +27,8 @@ const initialForm = {
 
 const inspectionTypes = ["일상점검", "정기점검", "특별점검"];
 
-function InspectionManagement({ user }) {
+function InspectionManagement({ user, setPage, PAGES }) {
   const [filters, setFilters] = useState(initialFilters);
-  const [form, setForm] = useState(initialForm);
-  const [formFile, setFormFile] = useState(null);
 
   const [items, setItems] = useState([]);
   const [detail, setDetail] = useState(null);
@@ -47,35 +45,6 @@ function InspectionManagement({ user }) {
   useEffect(() => {
     load();
   }, []);
-
-  const create = async (e) => {
-    e.preventDefault();
-
-    try {
-      const formData = new FormData();
-
-      formData.append(
-        "data",
-        new Blob([JSON.stringify(form)], {
-          type: "application/json",
-        }),
-      );
-
-      if (formFile) {
-        formData.append("file", formFile);
-      }
-
-      await inspectionApi.create(formData);
-
-      alert("점검 양식 등록 완료");
-      setForm(initialForm);
-      setFormFile(null);
-      setShowCreate(false);
-      load();
-    } catch (error) {
-      alert(error.message);
-    }
-  };
 
   const openDetail = async (id) => {
     try {
@@ -102,61 +71,11 @@ function InspectionManagement({ user }) {
         <h2>점검 양식 관리</h2>
 
         {isSafetyManager(user) && (
-          <button onClick={() => setShowCreate(!showCreate)}>
-            {showCreate ? "등록 닫기" : "점검 양식 등록"}
+          <button onClick={() => setPage(PAGES.INSPECTION_CREATE)}>
+            점검 양식 등록
           </button>
         )}
       </div>
-
-      {isSafetyManager(user) && showCreate && (
-        <form className="create-card" onSubmit={create}>
-          <h3>점검 양식 등록</h3>
-
-          <div className="form-grid">
-            <TextInput
-              label="양식명"
-              value={form.formName}
-              onChange={(e) => setForm({ ...form, formName: e.target.value })}
-              required
-            />
-
-            <SelectInput
-              label="점검 유형"
-              value={form.inspectionType}
-              onChange={(e) =>
-                setForm({ ...form, inspectionType: e.target.value })
-              }
-              required
-            >
-              <option value="">점검유형을 선택하세요</option>
-              {inspectionTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </SelectInput>
-
-            <TextInput
-              label="점검 양식 파일"
-              type="file"
-              accept=".html,.htm"
-              buttonText="양식 파일 선택"
-              helperText="HTML 형식의 점검 양식을 업로드하세요"
-              onChange={(e) => setFormFile(e.target.files?.[0] || null)}
-            />
-
-            <TextArea
-              label="설명"
-              value={form.description}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
-              }
-            />
-          </div>
-
-          <button type="submit">등록</button>
-        </form>
-      )}
 
       <SearchPanel
         onSubmit={(e) => {
