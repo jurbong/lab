@@ -62,7 +62,7 @@ function App() {
         );
       case PAGES.INSPECTION_CREATE:
         0;
-        return <InspectionCreate user={user} />;
+        return <InspectionCreate user={user} setPage={setPage} PAGES={PAGES} />;
       case "education":
         return <EducationManagement user={user} />;
       default:

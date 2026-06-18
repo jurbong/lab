@@ -14,7 +14,7 @@ const initialForm = {
   description: "",
 };
 
-function InspectionCreate({ user }) {
+function InspectionCreate({ user, setPage, PAGES }) {
   const [form, setForm] = useState(initialForm);
   const [formFile, setFormFile] = useState(null);
 
@@ -40,8 +40,7 @@ function InspectionCreate({ user }) {
       alert("점검 양식 등록 완료");
       setForm(initialForm);
       setFormFile(null);
-      setShowCreate(false);
-      load();
+      setPage(PAGES.INSPECTIONS);
     } catch (error) {
       alert(error.message);
     }
@@ -92,7 +91,19 @@ function InspectionCreate({ user }) {
           />
         </div>
 
-        <button type="submit">등록</button>
+        <div className="button-group">
+          <button type="submit">등록</button>
+          <button
+            type="button"
+            onClick={() => {
+              setForm(initialForm);
+              setFormFile(null);
+              setPage(PAGES.INSPECTIONS);
+            }}
+          >
+            취소
+          </button>
+        </div>
       </form>
     </section>
   );

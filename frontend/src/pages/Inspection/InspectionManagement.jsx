@@ -159,12 +159,6 @@ function InspectionManagement({ user, setPage, PAGES }) {
           {detail.filePath && (
             <div className="detail-file">
               <h4>점검 양식 미리보기</h4>
-
-              <iframe
-                src={getFileUrl(detail.filePath)}
-                title="점검 양식 미리보기"
-                className="inspection-form-preview"
-              ></iframe>
               <a
                 href={getFileUrl(detail.filePath)}
                 target="_blank"
@@ -173,6 +167,12 @@ function InspectionManagement({ user, setPage, PAGES }) {
               >
                 새창에서 열기
               </a>
+
+              <iframe
+                src={getFileUrl(detail.filePath)}
+                title="점검 양식 미리보기"
+                className="inspection-form-preview"
+              ></iframe>
             </div>
           )}
         </DetailModal>
