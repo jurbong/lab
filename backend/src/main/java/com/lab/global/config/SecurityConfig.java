@@ -48,7 +48,12 @@ public class SecurityConfig {
                         // 나머지는 로그인 필요
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+
+                .headers(headers -> headers
+                    .frameOptions(frame -> frame.disable())
+                );
+
 
         return http.build();
     }
