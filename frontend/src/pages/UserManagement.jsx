@@ -4,6 +4,7 @@ import http, { unwrap } from '../api/http';
 import { DetailGrid, DetailModal, EmptyState, SelectInput, TextInput } from '../components/FormControls';
 import { adminDepartmentLabel, roleLabel, statusLabel } from '../utils/labels';
 
+const initialFilters = { keyword: '', name: '', role: '', departmentId: '' };
 const initialCreateForm = {
   userId: '',
   password: '',
@@ -19,6 +20,7 @@ const initialCreateForm = {
 function UserManagement({ user }) {
   const isSystemAdmin = user?.role === 'ADMIN';
 
+  const [filters, setFilters] = useState(initialFilters);
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -27,9 +29,9 @@ function UserManagement({ user }) {
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState(initialCreateForm);
 
-  const load = async () => {
+  const load = async (next = filters) => {
     try {
-      setUsers(await userApi.list());
+      setUsers(await userApi.list(next));
     } catch (e) {
       alert(e.message);
     }
@@ -42,11 +44,17 @@ function UserManagement({ user }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const change = (e) => setFilters({ ...filters, [e.target.name]: e.target.value });
   const changeCreateForm = (e) => setCreateForm({ ...createForm, [e.target.name]: e.target.value });
 
   const submit = (e) => {
     e.preventDefault();
-    load();
+    load(filters);
+  };
+
+  const reset = () => {
+    setFilters(initialFilters);
+    load(initialFilters);
   };
 
   const openDetail = async (id) => {
@@ -193,8 +201,55 @@ function UserManagement({ user }) {
         )}
 
         <form className="search-panel" onSubmit={submit}>
+          <TextInput
+              label="검색"
+              name="keyword"
+              value={filters.keyword}
+              onChange={change}
+              placeholder="아이디, 이메일 검색"
+          />
+
+          <TextInput
+              label="이름"
+              name="name"
+              value={filters.name}
+              onChange={change}
+              placeholder="이름으로 조회"
+          />
+
+          <SelectInput
+              label="권한"
+              name="role"
+              value={filters.role}
+              onChange={change}
+          >
+            <option value="">전체</option>
+            {roles.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+            ))}
+          </SelectInput>
+
+          <SelectInput
+              label="학과/부서"
+              name="departmentId"
+              value={filters.departmentId}
+              onChange={change}
+          >
+            <option value="">전체</option>
+            {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.displayName || d.name}
+                </option>
+            ))}
+          </SelectInput>
+
           <div className="filter-actions">
             <button type="submit">조회</button>
+            <button type="button" className="secondary" onClick={reset}>
+              초기화
+            </button>
           </div>
         </form>
 

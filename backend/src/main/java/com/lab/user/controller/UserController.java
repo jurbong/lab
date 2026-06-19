@@ -19,12 +19,13 @@ public class UserController {
     @GetMapping
     public ApiResponse<List<UserResponse>> users(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String name,
             @RequestParam(required = false) com.lab.user.entity.UserStatus status,
             @RequestParam(required = false) com.lab.user.entity.UserRole role,
             @RequestParam(required = false) Long departmentId,
             @RequestParam(required = false) String adminDepartment
     ) {
-        return ApiResponse.ok("사용자 목록 조회 성공", userService.getUsers(keyword, status, role, departmentId, adminDepartment));
+        return ApiResponse.ok("사용자 목록 조회 성공", userService.getUsers(keyword, name, status, role, departmentId, adminDepartment));
     }
 
     @GetMapping("/options")

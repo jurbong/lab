@@ -26,10 +26,11 @@ public class UserService {
     private final DepartmentRepository departmentRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public List<UserResponse> getUsers(String keyword, UserStatus status, UserRole role, Long departmentId, String adminDepartment) {
+    public List<UserResponse> getUsers(String keyword, String name, UserStatus status, UserRole role, Long departmentId, String adminDepartment) {
         getCurrentAppUser();
 
         return userRepository.findAll().stream()
+                .filter(u -> name == null || name.isBlank() || contains(u.getName(), name.toLowerCase()))
                 .filter(u -> status == null || u.getStatus() == status)
                 .filter(u -> role == null || u.getRole() == role)
                 .filter(u -> departmentId == null || (u.getDepartment() != null && u.getDepartment().getId().equals(departmentId)))
