@@ -13,8 +13,8 @@ export function LoginPage({ onLogin }) {
     setLoading(true);
     try {
       const data = await authApi.login(form);
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('loginUser', JSON.stringify(data));
+      sessionStorage.setItem('accessToken', data.accessToken);
+      sessionStorage.setItem('loginUser', JSON.stringify(data));
       onLogin(data);
     } catch (error) {
       alert(error.message);

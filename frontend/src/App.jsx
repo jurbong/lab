@@ -10,24 +10,42 @@ import InspectionManagement from "./pages/inspection/InspectionManagement";
 import InspectionCreate from "./pages/inspection/InspectionCreate";
 import EducationManagement from "./pages/EducationManagement";
 
+function isTokenValid(token) {
+  if (!token) return false;
+  try {
+    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const { exp } = JSON.parse(atob(base64));
+    return typeof exp === "number" && exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
+}
+
+function clearAuth() {
+  sessionStorage.removeItem("accessToken");
+  sessionStorage.removeItem("loginUser");
+}
+
 function App() {
   const [user, setUser] = useState(null);
   const [page, setPage] = useState("dashboard");
 
   useEffect(() => {
-    const saved = localStorage.getItem("loginUser");
-    if (saved) {
+    const saved = sessionStorage.getItem("loginUser");
+    const token = sessionStorage.getItem("accessToken");
+    if (saved && isTokenValid(token)) {
       try {
         setUser(JSON.parse(saved));
       } catch {
-        localStorage.removeItem("loginUser");
+        clearAuth();
       }
+    } else {
+      clearAuth();
     }
   }, []);
 
   const logout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("loginUser");
+    clearAuth();
     setUser(null);
     setPage("dashboard");
   };
