@@ -9,7 +9,6 @@ const cleanParams = (params = {}) => {
 };
 
 export const authApi = {
-  signup: async (payload) => unwrap(await http.post('/api/auth/signup', payload)),
   login: async (payload) => unwrap(await http.post('/api/auth/login', payload)),
 };
 

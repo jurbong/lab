@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Layout from "./components/Layout";
-import { LoginPage, SignupPage } from "./pages/AuthPages";
+import { LoginPage } from "./pages/AuthPages";
 import Dashboard from "./pages/Dashboard";
 import UserManagement from "./pages/UserManagement";
 import LabManagement from "./pages/LabManagement";
@@ -11,7 +11,6 @@ import InspectionCreate from "./pages/inspection/InspectionCreate";
 import EducationManagement from "./pages/EducationManagement";
 
 function App() {
-  const [authMode, setAuthMode] = useState("login");
   const [user, setUser] = useState(null);
   const [page, setPage] = useState("dashboard");
 
@@ -34,11 +33,7 @@ function App() {
   };
 
   if (!user) {
-    return authMode === "signup" ? (
-      <SignupPage goLogin={() => setAuthMode("login")} />
-    ) : (
-      <LoginPage onLogin={setUser} goSignup={() => setAuthMode("signup")} />
-    );
+    return <LoginPage onLogin={setUser} />;
   }
 
   const PAGES = {
@@ -61,7 +56,6 @@ function App() {
           <InspectionManagement user={user} setPage={setPage} PAGES={PAGES} />
         );
       case PAGES.INSPECTION_CREATE:
-        0;
         return <InspectionCreate user={user} setPage={setPage} PAGES={PAGES} />;
       case "education":
         return <EducationManagement user={user} />;

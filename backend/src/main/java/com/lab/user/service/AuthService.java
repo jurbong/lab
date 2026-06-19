@@ -1,15 +1,11 @@
 package com.lab.user.service;
 
-import com.lab.department.entity.Department;
-import com.lab.department.repository.DepartmentRepository;
 import com.lab.global.exception.ApiException;
 import com.lab.global.security.JwtProvider;
 import com.lab.user.dto.LoginRequest;
 import com.lab.user.dto.LoginResponse;
-import com.lab.user.dto.SignupRequest;
 import com.lab.user.dto.UserResponse;
 import com.lab.user.entity.AppUser;
-import com.lab.user.entity.UserRole;
 import com.lab.user.entity.UserStatus;
 import com.lab.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,31 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final DepartmentRepository departmentRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
-
-    public void signup(SignupRequest r) {
-        if (userRepository.existsByUserId(r.getUserId())) {
-            throw ApiException.badRequest("이미 사용 중인 아이디입니다.");
-        }
-        if (userRepository.existsByEmail(r.getEmail())) {
-            throw ApiException.badRequest("이미 사용 중인 이메일입니다.");
-        }
-
-        Department department = resolveDepartment(r.getDepartmentId(), r.getDepartment());
-
-        userRepository.save(AppUser.builder()
-                .userId(r.getUserId())
-                .password(passwordEncoder.encode(r.getPassword()))
-                .name(r.getName())
-                .department(department)
-                .email(r.getEmail())
-                .phone(r.getPhone())
-                .role(UserRole.LAB_MEMBER)
-                .status(UserStatus.APPROVED)
-                .build());
-    }
 
     public LoginResponse login(LoginRequest r) {
         AppUser u = userRepository.findByUserId(r.getUserId())
@@ -69,17 +42,5 @@ public class AuthService {
                 u.getRole(),
                 UserResponse.roleLabel(u.getRole())
         );
-    }
-
-    private Department resolveDepartment(Long departmentId, String departmentName) {
-        if (departmentId != null) {
-            return departmentRepository.findById(departmentId)
-                    .orElseThrow(() -> ApiException.badRequest("선택한 학과를 찾을 수 없습니다."));
-        }
-        if (departmentName != null && !departmentName.isBlank()) {
-            return departmentRepository.findByName(departmentName)
-                    .orElseThrow(() -> ApiException.badRequest("선택한 학과를 찾을 수 없습니다."));
-        }
-        return null;
     }
 }
