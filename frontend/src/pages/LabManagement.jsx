@@ -83,6 +83,29 @@ function LabManagement({ user }) {
     load(initialFilters);
   };
 
+  const handleDepartmentChange = async (e) => {
+    const deptId = e.target.value;
+    setForm({ ...form, departmentId: deptId });
+
+    // 부서 변경 시 기존 검색 결과 비우고 자동 로드
+    setManagerResults([]);
+    setMemberResults([]);
+    setManagerKeyword('');
+    setMemberKeyword('');
+
+    if (deptId) {
+      try {
+        const result = await userApi.options({
+          departmentId: Number(deptId),
+        });
+        setManagerResults(result);
+        setMemberResults(result);
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+  };
+
   const searchManagers = async () => {
     try {
       const result = await userApi.options({
@@ -265,7 +288,7 @@ function LabManagement({ user }) {
             <SelectInput
               label="학과/부서"
               value={form.departmentId}
-              onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
+              onChange={handleDepartmentChange}
               required
             >
               <option value="">선택</option>
@@ -280,6 +303,7 @@ function LabManagement({ user }) {
               label="위치"
               value={form.location}
               onChange={(e) => setForm({ ...form, location: e.target.value })}
+              required
             />
 
             <TextInput
@@ -287,6 +311,7 @@ function LabManagement({ user }) {
               value={form.labType}
               onChange={(e) => setForm({ ...form, labType: e.target.value })}
               placeholder="예: 실험실, 일반연구실"
+              required
             />
 
             <TextInput
@@ -307,12 +332,12 @@ function LabManagement({ user }) {
                 label="책임자 검색"
                 value={managerKeyword}
                 onChange={(e) => setManagerKeyword(e.target.value)}
-                placeholder="이름, 아이디, 학과/부서 검색"
+                placeholder="이름, 아이디검색"
               />
 
               <label className="form-field">
                 <span>&nbsp;</span>
-                <button type="button" onClick={searchManagers}>
+                <button type="button" onClick={searchManagers} disabled={!form.departmentId}>
                   검색
                 </button>
               </label>
@@ -362,12 +387,12 @@ function LabManagement({ user }) {
                 label="구성원 검색"
                 value={memberKeyword}
                 onChange={(e) => setMemberKeyword(e.target.value)}
-                placeholder="이름, 아이디, 학과/부서 검색"
+                placeholder="이름, 아이디검색"
               />
 
               <label className="form-field">
                 <span>&nbsp;</span>
-                <button type="button" onClick={searchMembers}>
+                <button type="button" onClick={searchMembers} disabled={!form.departmentId}>
                   검색
                 </button>
               </label>
