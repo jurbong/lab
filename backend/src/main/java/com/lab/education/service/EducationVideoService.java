@@ -47,6 +47,10 @@ public class EducationVideoService {
     public EducationVideoResponse createVideo(EducationVideoCreateRequest r, MultipartFile video) {
         requireEducationManagerOrAdmin();
 
+        if (video == null || video.isEmpty()) {
+            throw ApiException.badRequest("교육 동영상을 선택해주세요.");
+        }
+
         if (repository.existsByTitle(r.getTitle())) {
             throw ApiException.badRequest("이미 등록된 교육 동영상 제목입니다.");
         }

@@ -37,8 +37,30 @@ function EducationManagement({ user }) {
     load();
   }, []);
 
+  const validateForm = () => {
+    if (!form.title.trim()) {
+      alert('제목을 입력해주세요.');
+      return false;
+    }
+    if (!form.educationType.trim()) {
+      alert('교육 유형을 입력해주세요.');
+      return false;
+    }
+    if (!videoFile) {
+      alert('교육 동영상을 선택해주세요.');
+      return false;
+    }
+    if (!form.description.trim()) {
+      alert('설명을 입력해주세요.');
+      return false;
+    }
+    return true;
+  };
+
   const create = async (e) => {
     e.preventDefault();
+
+    if (!validateForm()) return;
 
     try {
       const formData = new FormData();
@@ -98,7 +120,7 @@ function EducationManagement({ user }) {
       </div>
 
       {isEducationManager(user) && showCreate && (
-        <form className="create-card" onSubmit={create}>
+        <form className="create-card" onSubmit={create} noValidate>
           <h3>교육 동영상 등록</h3>
 
           <div className="form-grid">
@@ -106,7 +128,6 @@ function EducationManagement({ user }) {
               label="제목"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              required
             />
 
             <TextInput
