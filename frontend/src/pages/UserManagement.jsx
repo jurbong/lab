@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { departmentApi, optionApi, userApi } from '../api/api';
 import http, { unwrap } from '../api/http';
 import { DetailGrid, DetailModal, EmptyState, SelectInput, TextInput } from '../components/FormControls';
-import { adminDepartmentLabel, roleLabel, statusLabel } from '../utils/labels';
+import { roleLabel, statusLabel } from '../utils/labels';
 
 const initialFilters = { keyword: '', name: '', role: '', departmentId: '' };
 const initialCreateForm = {
@@ -14,7 +14,6 @@ const initialCreateForm = {
   email: '',
   phone: '',
   role: 'LAB_MEMBER',
-  adminDepartment: '',
 };
 
 function UserManagement({ user }) {
@@ -24,7 +23,6 @@ function UserManagement({ user }) {
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [adminDepartments, setAdminDepartments] = useState([]);
   const [detail, setDetail] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState(initialCreateForm);
@@ -40,7 +38,6 @@ function UserManagement({ user }) {
   useEffect(() => {
     departmentApi.list().then(setDepartments).catch(() => {});
     optionApi.roles().then(setRoles).catch(() => {});
-    optionApi.adminDepartments().then(setAdminDepartments).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -71,7 +68,6 @@ function UserManagement({ user }) {
       await unwrap(await http.post('/api/users', {
         ...createForm,
         departmentId: createForm.departmentId ? Number(createForm.departmentId) : null,
-        adminDepartment: createForm.adminDepartment || null,
       }));
 
       alert('사용자 등록 완료');
@@ -180,20 +176,6 @@ function UserManagement({ user }) {
                       </option>
                   ))}
                 </SelectInput>
-
-                <SelectInput
-                    label="관리 부서"
-                    name="adminDepartment"
-                    value={createForm.adminDepartment}
-                    onChange={changeCreateForm}
-                >
-                  <option value="">해당 없음</option>
-                  {adminDepartments.map((d) => (
-                      <option key={d.value} value={d.value}>
-                        {d.label}
-                      </option>
-                  ))}
-                </SelectInput>
               </div>
 
               <button type="submit">등록</button>
@@ -262,7 +244,6 @@ function UserManagement({ user }) {
               <th>학과/부서</th>
               <th>권한</th>
               <th>상태</th>
-              <th>관리 부서</th>
               <th>관리</th>
             </tr>
             </thead>
@@ -279,7 +260,6 @@ function UserManagement({ user }) {
                     {u.statusLabel || statusLabel(u.status)}
                   </span>
                   </td>
-                  <td>{u.adminDepartmentLabel || adminDepartmentLabel(u.adminDepartment)}</td>
                   <td className="actions">
                     <button
                         className="secondary"
@@ -311,7 +291,6 @@ function UserManagement({ user }) {
                     ['학과/부서', detail.departmentDisplayName || detail.departmentName],
                     ['권한', detail.roleLabel || roleLabel(detail.role)],
                     ['상태', detail.statusLabel || statusLabel(detail.status)],
-                    ['관리 부서', detail.adminDepartmentLabel || adminDepartmentLabel(detail.adminDepartment)],
                   ]}
               />
             </DetailModal>
