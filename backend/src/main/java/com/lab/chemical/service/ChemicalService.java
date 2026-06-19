@@ -70,12 +70,10 @@ public class ChemicalService {
                 .orElseThrow(() -> ApiException.notFound("화학물질을 찾을 수 없습니다."));
     }
 
-    private void requireApprovedViewer() {
-        UserRole role = AuthUtil.getCurrentUserRole();
-        if (role != UserRole.ADMIN) {
-            throw ApiException.forbidden("화학물질 조회는 시스템 관리자만 가능합니다.");
-        }
-    }
+   private void requireApprovedViewer() {
+    // 로그인한 사용자라면 누구나 조회 가능
+    AuthUtil.getCurrentUserId();
+}
 
     private boolean matchesKeyword(Chemical c, String keyword) {
         String k = keyword.toLowerCase();
