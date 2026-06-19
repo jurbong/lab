@@ -89,6 +89,9 @@ public class LaboratoryService {
 
         Department department = resolveDepartment(r.getDepartmentId(), r.getDepartment());
 
+        // 비관리자는 본인 학과의 연구실만 등록 가능
+        verifyLabDepartment(creator, department);
+
         AppUser manager = null;
         String managerName = r.getManagerName();
 
@@ -127,6 +130,7 @@ public class LaboratoryService {
 
         for (Long memberId : memberIds) {
             AppUser member = findUser(memberId);
+            verifySameDepartment(creator, member);
             saveMember(saved, member);
         }
 
@@ -194,6 +198,34 @@ public class LaboratoryService {
     private AppUser findUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> ApiException.badRequest("선택한 사용자를 찾을 수 없습니다."));
+    }
+
+    private void verifyLabDepartment(AppUser creator, Department department) {
+        // 시스템 관리자는 모든 학과의 연구실을 등록할 수 있음
+        if (creator.getRole() == UserRole.ADMIN) {
+            return;
+        }
+
+        Long creatorDept = creator.getDepartment() != null ? creator.getDepartment().getId() : null;
+        Long labDept = department != null ? department.getId() : null;
+
+        if (creatorDept == null || !creatorDept.equals(labDept)) {
+            throw ApiException.badRequest("본인 학과의 연구실만 등록할 수 있습니다.");
+        }
+    }
+
+    private void verifySameDepartment(AppUser creator, AppUser member) {
+        // 시스템 관리자는 학과 제한 없이 등록 가능
+        if (creator.getRole() == UserRole.ADMIN) {
+            return;
+        }
+
+        Long creatorDept = creator.getDepartment() != null ? creator.getDepartment().getId() : null;
+        Long memberDept = member.getDepartment() != null ? member.getDepartment().getId() : null;
+
+        if (creatorDept == null || !creatorDept.equals(memberDept)) {
+            throw ApiException.badRequest("같은 학과 구성원만 연구실에 등록할 수 있습니다.");
+        }
     }
 
     private void saveMember(Laboratory lab, AppUser user) {

@@ -12,7 +12,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String,Object>> valid(MethodArgumentNotValidException e){
         String msg=e.getBindingResult().getFieldErrors().stream().findFirst()
-            .map(x->x.getField()+": "+x.getDefaultMessage()).orElse("입력값이 올바르지 않습니다.");
+                .map(x->x.getDefaultMessage()).orElse("입력값이 올바르지 않습니다.");
         return ResponseEntity.badRequest().body(Map.of("success",false,"message",msg));
     }
     @ExceptionHandler(Exception.class)
